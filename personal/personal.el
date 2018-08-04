@@ -5,22 +5,47 @@
                       tabbar
                       color-theme-solarized
                       solarized-theme
-                      ;; pbcopy
                       tide
-                      company-jedi))
+                      yasnippet-snippets
+                      ts-comint
+                      elm-mode
+                      ;; eyebrowse
+                      rvm
+                      ))
 
 (prelude-require-packages my/packages)
 
-(defvar my/todo-files '("todo.org" "home.org"))
+(require 'org)
+(defvar my/todo-files '("~/org/today.org" "~/org/todo.org" "~/org/home.org"))
+(setq org-agenda-files my/todo-files)
+;; https://orgmode.org/worg/org-configs/org-config-examples.html#orgbf5a5f8
+(define-key org-mode-map (kbd "C-RET") 'org-insert-heading-respect-content)
+(define-key org-mode-map (kbd "S-M-RET") 'org-insert-todo-heading)
+;; (add-hook 'org-mode-hook
+;;           (lambda ()
+;;             (local-set-key (kbd "C-RET") 'org-insert-heading-respect-content)
+;;             ;; (local-set-key "\M-n" 'outline-next-visible-heading)
+;;             ;; (local-set-key "\M-p" 'outline-previous-visible-heading)
+;;             ;; ;; table
+;;             ;; (local-set-key "\C-\M-w" 'org-table-copy-region)
+;;             ;; (local-set-key "\C-\M-y" 'org-table-paste-rectangle)
+;;             ;; (local-set-key "\C-\M-l" 'org-table-sort-lines)
+;;             ;; ;; fix tab
+;;             ;; (local-set-key "\C-y" 'yank)
+;;             ))
 
 ;; Keys
 ;; escape sequences
-(defvar my/escape-sequence-chars '(";" "/" "?" "(" ")" "{" "}" "+"))
+(defvar my/escape-sequence-chars '(";" "/" "?" "(" ")" "{" "}" "<" ">" "+"))
 (defun my/create-esc-seq-mapping (character)
   (let ((esc-seq (concat "M-[ " character))
         (orig-seq (concat "C-" character)))
     (define-key key-translation-map (kbd esc-seq) (kbd orig-seq))))
 (mapc 'my/create-esc-seq-mapping my/escape-sequence-chars)
+
+(define-key key-translation-map (kbd "M-[ m") (kbd "C-RET"))
+(define-key key-translation-map (kbd "M-[ M") (kbd "M-S-RET"))
+
 
 ;; key mappings
 (defun my/create-global-mapping (kbd-fn)
@@ -36,9 +61,11 @@
     ("M-K" (lambda () (interactive) (kill-buffer (current-buffer))))
     ("M-F" tabbar-forward-tab)
     ("M-B" tabbar-backward-tab)
-    ("C-c x" clipboard-kill-region)
-    ("C-c c" clipboard-kill-ring-save)
-    ("C-c v" clipboard-yank)))
+    ;; ("C-c x" clipboard-kill-region)
+    ;; ("C-c c" clipboard-kill-ring-save)
+    ;; ("C-c v" clipboard-yank)
+    ;; ("M-DEL" subword-backward-kill)
+    ))
 (mapc 'my/create-global-mapping my/global-keys)
 
 (defvar my/prelude-keys '())
@@ -78,6 +105,13 @@
   (enable-theme 'solarized))
 
 (dark-mode)
+
+;; https://stackoverflow.com/questions/1242352/get-font-face-under-cursor-in-emacs
+(defun what-face (pos)
+  (interactive "d")
+  (let ((face (or (get-char-property (pos) 'read-face-name)
+                  (get-char-property (pos) 'face))))
+    (if face (message "Face: %s" face) (message "No face at %d" pos))))
 
 ;; could also try https://github.com/jinzhu/configure/blob/master/emacs/settings/tabbar.el
 (defun my/tabbar-buffer-groups-by-project ()
@@ -131,36 +165,32 @@ Return a list of one element based on major mode."
 (setq tabbar-buffer-groups-function 'my/tabbar-buffer-groups-by-project)
 ;; (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
 
-
-
 ;; https://www.reddit.com/r/emacs/comments/6i0u5e/react_jsx_indentation_on_emacs/
 (require 'web-mode)
 
-(add-hook 'web-mode-hook
-          (lambda ()
-            (if
-                (equal web-mode-content-type "javascript")
-                (web-mode-set-content-type "jsx")
-              (message "now set to: %s" web-mode-content-type))))
+(add-hook
+ 'web-mode-hook
+ (lambda ()
+   (if
+       (equal web-mode-content-type "javascript")
+       (web-mode-set-content-type "jsx")
+     (message "now set to: %s" web-mode-content-type))))
 
-(add-to-list 'auto-mode-alist '("\\.jsx?\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.tsx?\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.[agj]sp\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.as[cp]x\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.jsx\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.[agj]sp\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.as[cp]x\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
 
 ;; https://github.com/ananthakumaran/tide
 (defun setup-tide-mode ()
   (interactive)
   (tide-setup)
-  ;; ;; https://github.com/ananthakumaran/tide/issues/95
-  ;; (flycheck-add-next-checker 'typescript-tide '(t . typescript-tslint) 'append)
-  ;; (flycheck-add-next-checker 'tsx-tide '(warning . typescript-tslint) 'append)
   (flycheck-mode +1)
   (setq flycheck-check-syntax-automatically '(save mode-enabled))
   (eldoc-mode +1)
@@ -173,28 +203,31 @@ Return a list of one element based on major mode."
 ;; formats the buffer before saving
 (add-hook 'before-save-hook 'tide-format-before-save)
 (add-hook 'typescript-mode-hook #'setup-tide-mode)
+(add-hook 'typescript-mode-hook #'smartparens-mode)
 
 (add-hook 'web-mode-hook
           (lambda ()
             (when (or
-                   (string-equal "tsx" (file-name-extension buffer-file-name))
-                   (string-equal "ts" (file-name-extension buffer-file-name)))
+                   (string-equal "tsx" (file-name-extension buffer-file-name)))
               (setup-tide-mode))
             (smartparens-mode)))
 ;; enable typescript-tslint checker
 (flycheck-add-mode 'typescript-tslint 'web-mode)
 
-;; http://jbm.io/2014/01/react-in-emacs-creature-comforts/
-(defun modify-syntax-table-for-jsx ()
-  (modify-syntax-entry ?< "(>")
-  (modify-syntax-entry ?> ")<"))
-(add-hook 'js2-mode-hook 'modify-syntax-table-for-jsx)
-(add-hook 'web-mode-hook 'modify-syntax-table-for-jsx)
+(require 'tide)
+(define-key tide-mode-map (kbd "M-RET") 'tide-fix)
 
-(eval-after-load 'js2-mode
-  '(sp-local-pair 'js2-mode "<" ">"))
-(eval-after-load 'web-mode
-  '(sp-local-pair 'js2-mode "<" ">"))
+;; http://jbm.io/2014/01/react-in-emacs-creature-comforts/
+;; (defun modify-syntax-table-for-jsx ()
+;;   (modify-syntax-entry ?< "(>")
+;;   (modify-syntax-entry ?> ")<"))
+;; (add-hook 'js2-mode-hook 'modify-syntax-table-for-jsx)
+;; (add-hook 'web-mode-hook 'modify-syntax-table-for-jsx)
+
+;; (eval-after-load 'js2-mode
+;;   '(sp-local-pair 'js2-mode "<" ">"))
+;; (eval-after-load 'web-mode
+;;   '(sp-local-pair 'js2-mode "<" ">"))
 
 ;; (setq tide-format-options '(:indentSize 4
 ;;                             :tabSize 4))
@@ -206,3 +239,5 @@ Return a list of one element based on major mode."
 ;;   (anaconda-mode 0))
 ;; (add-hook 'python-mode-hook 'my/python-mode-hooks)
 ;; (setq jedi:complete-on-dot t)  ; optional
+(yas-global-mode)
+(rvm-use-default)

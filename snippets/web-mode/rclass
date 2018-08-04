@@ -1,0 +1,18 @@
+# -*- mode: snippet -*-
+# name: rclass
+# key: rclass
+# --
+interface $1Props {
+  ${2:propsfields}
+}
+
+interface $1State {
+  ${3:statefields}
+}
+
+class ${1:classname} extends React.Component<$1Props, $1State> {
+  constructor(props: $1Props) {
+    super(props);
+    ${4:constructor}
+  }
+}
