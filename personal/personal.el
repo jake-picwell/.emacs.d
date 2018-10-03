@@ -1,9 +1,12 @@
+(menu-bar-mode 0)
+(setq prelude-guru nil)
+;; (beacon-mode 1)
+
 (defvar my/packages '(markdown-mode
                       multiple-cursors
                       clj-refactor
                       ;; slamhound
                       tabbar
-                      color-theme-solarized
                       solarized-theme
                       tide
                       yasnippet-snippets
@@ -14,13 +17,32 @@
                       ))
 
 (prelude-require-packages my/packages)
+(setq prelude-theme 'solarized-dark)
+;; (defun light-mode ()
+;;   (interactive)
+;;   (set-terminal-parameter nil 'background-mode 'light)
+;;   (setq frame-background-mode 'light)
+;;   (mapc 'frame-set-background-mode (frame-list))
+;;   (enable-theme 'solarized))
+
+;; (defun dark-mode ()
+;;   (interactive)
+;;   (set-terminal-parameter nil 'background-mode 'dark)
+;;   (setq frame-background-mode 'dark)
+;;   (mapc 'frame-set-background-mode (frame-list))
+;;   (enable-theme 'solarized))
+
+;; (dark-mode)
+
 
 (require 'org)
+(setq initial-major-mode 'org-mode)
 (defvar my/todo-files '("~/org/today.org" "~/org/todo.org" "~/org/home.org"))
 (setq org-agenda-files my/todo-files)
 ;; https://orgmode.org/worg/org-configs/org-config-examples.html#orgbf5a5f8
 (define-key org-mode-map (kbd "C-RET") 'org-insert-heading-respect-content)
 (define-key org-mode-map (kbd "S-M-RET") 'org-insert-todo-heading)
+(define-key org-mode-map (kbd "C-M-k") 'org-cut-subtree)
 ;; (add-hook 'org-mode-hook
 ;;           (lambda ()
 ;;             (local-set-key (kbd "C-RET") 'org-insert-heading-respect-content)
@@ -45,6 +67,7 @@
 
 (define-key key-translation-map (kbd "M-[ m") (kbd "C-RET"))
 (define-key key-translation-map (kbd "M-[ M") (kbd "M-S-RET"))
+(define-key key-translation-map (kbd "M-[ SPC") (kbd "C-SPC"))
 
 
 ;; key mappings
@@ -68,7 +91,8 @@
     ))
 (mapc 'my/create-global-mapping my/global-keys)
 
-(defvar my/prelude-keys '())
+(defvar my/prelude-keys '(("M-i" other-window)
+                          ("M-I" (lambda () (interactive) (other-window -1)))))
 (mapc 'my/create-prelude-mapping my/prelude-keys)
 
 ;; Hooks
@@ -83,28 +107,6 @@
   (setq prelude-clean-whitespace-on-save nil))
 (add-hook 'markdown-mode-hook 'my/markdown-settings)
 
-;; fix how helm splits windows
-(setq split-height-threshold nil)
-;; (setq 'prelude-theme solarized)
-
-(beacon-mode 0)
-
-
-(defun light-mode ()
-  (interactive)
-  (set-terminal-parameter nil 'background-mode 'light)
-  (setq frame-background-mode 'light)
-  (mapc 'frame-set-background-mode (frame-list))
-  (enable-theme 'solarized))
-
-(defun dark-mode ()
-  (interactive)
-  (set-terminal-parameter nil 'background-mode 'dark)
-  (setq frame-background-mode 'dark)
-  (mapc 'frame-set-background-mode (frame-list))
-  (enable-theme 'solarized))
-
-(dark-mode)
 
 ;; https://stackoverflow.com/questions/1242352/get-font-face-under-cursor-in-emacs
 (defun what-face (pos)
@@ -112,6 +114,70 @@
   (let ((face (or (get-char-property (pos) 'read-face-name)
                   (get-char-property (pos) 'face))))
     (if face (message "Face: %s" face) (message "No face at %d" pos))))
+
+
+(require 'tabbar)
+
+(setq tabbar-separator (quote (" | ")))
+(set-face-attribute 'tabbar-unselected nil :foreground "lightgreen")
+
+;; https://www.emacswiki.org/emacs/TabBarMode
+(defun tabbar-move-current-tab-one-place-left ()
+  "Move current tab one place left, unless it's already the leftmost."
+  (interactive)
+  (let* ((bufset (tabbar-current-tabset t))
+         (old-bufs (tabbar-tabs bufset))
+         (first-buf (car old-bufs))
+         (new-bufs (list)))
+    (if (string= (buffer-name) (format "%s" (car first-buf)))
+        old-bufs ; the current tab is the leftmost
+      (setq not-yet-this-buf first-buf)
+      (setq old-bufs (cdr old-bufs))
+      (while (and
+              old-bufs
+              (not (string= (buffer-name) (format "%s" (car (car old-bufs))))))
+        (push not-yet-this-buf new-bufs)
+        (setq not-yet-this-buf (car old-bufs))
+        (setq old-bufs (cdr old-bufs)))
+      (if old-bufs ; if this is false, then the current tab's buffer name is mysteriously missing
+          (progn
+            (push (car old-bufs) new-bufs) ; this is the tab that was to be moved
+            (push not-yet-this-buf new-bufs)
+            (setq new-bufs (reverse new-bufs))
+            (setq new-bufs (append new-bufs (cdr old-bufs))))
+        (error "Error: current buffer's name was not found in Tabbar's buffer list."))
+      (set bufset new-bufs)
+      (tabbar-set-template bufset nil)
+      (tabbar-display-update))))
+(defun tabbar-move-current-tab-one-place-right ()
+  "Move current tab one place right, unless it's already the rightmost."
+  (interactive)
+  (let* ((bufset (tabbar-current-tabset t))
+         (old-bufs (tabbar-tabs bufset))
+         (first-buf (car old-bufs))
+         (new-bufs (list)))
+    (while (and
+            old-bufs
+            (not (string= (buffer-name) (format "%s" (car (car old-bufs))))))
+      (push (car old-bufs) new-bufs)
+      (setq old-bufs (cdr old-bufs)))
+    (if old-bufs ; if this is false, then the current tab's buffer name is mysteriously missing
+        (progn
+          (setq the-buffer (car old-bufs))
+          (setq old-bufs (cdr old-bufs))
+          (if old-bufs ; if this is false, then the current tab is the rightmost
+              (push (car old-bufs) new-bufs))
+          (push the-buffer new-bufs)) ; this is the tab that was to be moved
+      (error "Error: current buffer's name was not found in Tabbar's buffer list."))
+    (setq new-bufs (reverse new-bufs))
+    (setq new-bufs (append new-bufs (cdr old-bufs)))
+    (set bufset new-bufs)
+    (tabbar-set-template bufset nil)
+    (tabbar-display-update)))
+;; Key sequences "C-S-PgUp" and "C-S-PgDn" move the current tab to the left and to the right.
+(define-key prelude-mode-map (kbd "C-c C-<left>") 'tabbar-move-current-tab-one-place-left)
+(define-key prelude-mode-map (kbd "C-c C-<right>") 'tabbar-move-current-tab-one-place-right)
+(define-key prelude-mode-map (kbd "S-C-K") 'kill-whole-line)
 
 ;; could also try https://github.com/jinzhu/configure/blob/master/emacs/settings/tabbar.el
 (defun my/tabbar-buffer-groups-by-project ()
@@ -128,8 +194,8 @@ Return a list of one element based on major mode."
      )
     ((or
       (memq major-mode '(fundamental-mode))
-      (member (buffer-name)
-              '("*scratch*" "*Messages*")))
+      (string-equal "*" (substring (buffer-name) 0 1))
+      )
      "Common"
      )
     ((eq major-mode 'dired-mode)
@@ -163,74 +229,67 @@ Return a list of one element based on major mode."
      ))))
 
 (setq tabbar-buffer-groups-function 'my/tabbar-buffer-groups-by-project)
-;; (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
+(tabbar-mode 1)
 
-;; https://www.reddit.com/r/emacs/comments/6i0u5e/react_jsx_indentation_on_emacs/
-(require 'web-mode)
+;; ;; https://www.reddit.com/r/emacs/comments/6i0u5e/react_jsx_indentation_on_emacs/
+;; (require 'web-mode)
 
-(add-hook
- 'web-mode-hook
- (lambda ()
-   (if
-       (equal web-mode-content-type "javascript")
-       (web-mode-set-content-type "jsx")
-     (message "now set to: %s" web-mode-content-type))))
+;; (add-hook
+;;  'web-mode-hook
+;;  (lambda ()
+;;    (if
+;;        (equal web-mode-content-type "javascript")
+;;        (web-mode-set-content-type "jsx")
+;;      (message "now set to: %s" web-mode-content-type))))
 
-(add-to-list 'auto-mode-alist '("\\.jsx\\'" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
-;; (add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
-;; (add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
-;; (add-to-list 'auto-mode-alist '("\\.[agj]sp\\'" . web-mode))
-;; (add-to-list 'auto-mode-alist '("\\.as[cp]x\\'" . web-mode))
-;; (add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
-;; (add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
-;; (add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode))
-;; (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.jsx\\'" . web-mode))
+;; (add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
 
-;; https://github.com/ananthakumaran/tide
-(defun setup-tide-mode ()
-  (interactive)
-  (tide-setup)
-  (flycheck-mode +1)
-  (setq flycheck-check-syntax-automatically '(save mode-enabled))
-  (eldoc-mode +1)
-  (tide-hl-identifier-mode +1)
-  (company-mode +1))
+;; ;; https://github.com/ananthakumaran/tide
+;; (defun setup-tide-mode ()
+;;   (interactive)
+;;   (tide-setup)
+;;   (flycheck-mode +1)
+;;   (setq flycheck-check-syntax-automatically '(save mode-enabled))
+;;   (eldoc-mode +1)
+;;   (tide-hl-identifier-mode +1)
+;;   (company-mode +1))
 
-;; aligns annotation to the right hand side
-(setq company-tooltip-align-annotations t)
+;; ;; aligns annotation to the right hand side
+;; (setq company-tooltip-align-annotations t)
 
-;; formats the buffer before saving
-(add-hook 'before-save-hook 'tide-format-before-save)
-(add-hook 'typescript-mode-hook #'setup-tide-mode)
-(add-hook 'typescript-mode-hook #'smartparens-mode)
+;; ;; formats the buffer before saving
+;; (add-hook 'before-save-hook 'tide-format-before-save)
+;; (add-hook 'typescript-mode-hook #'setup-tide-mode)
+;; (add-hook 'typescript-mode-hook #'smartparens-mode)
 
-(add-hook 'web-mode-hook
-          (lambda ()
-            (when (or
-                   (string-equal "tsx" (file-name-extension buffer-file-name)))
-              (setup-tide-mode))
-            (smartparens-mode)))
-;; enable typescript-tslint checker
-(flycheck-add-mode 'typescript-tslint 'web-mode)
+;; (require 'flycheck)
+;; (add-hook 'web-mode-hook
+;;           (lambda ()
+;;             (when (or
+;;                    (string-equal "tsx" (file-name-extension buffer-file-name)))
+;;               (setup-tide-mode))
+;;             (smartparens-mode)))
+;; ;; enable typescript-tslint checker
+;; (flycheck-add-mode 'typescript-tslint 'web-mode)
 
-(require 'tide)
-(define-key tide-mode-map (kbd "M-RET") 'tide-fix)
+;; (require 'tide)
+;; (define-key tide-mode-map (kbd "M-RET") 'tide-fix)
 
-;; http://jbm.io/2014/01/react-in-emacs-creature-comforts/
-;; (defun modify-syntax-table-for-jsx ()
-;;   (modify-syntax-entry ?< "(>")
-;;   (modify-syntax-entry ?> ")<"))
-;; (add-hook 'js2-mode-hook 'modify-syntax-table-for-jsx)
-;; (add-hook 'web-mode-hook 'modify-syntax-table-for-jsx)
+;; ;; http://jbm.io/2014/01/react-in-emacs-creature-comforts/
+;; ;; (defun modify-syntax-table-for-jsx ()
+;; ;;   (modify-syntax-entry ?< "(>")
+;; ;;   (modify-syntax-entry ?> ")<"))
+;; ;; (add-hook 'js2-mode-hook 'modify-syntax-table-for-jsx)
+;; ;; (add-hook 'web-mode-hook 'modify-syntax-table-for-jsx)
 
-;; (eval-after-load 'js2-mode
-;;   '(sp-local-pair 'js2-mode "<" ">"))
-;; (eval-after-load 'web-mode
-;;   '(sp-local-pair 'js2-mode "<" ">"))
+;; ;; (eval-after-load 'js2-mode
+;; ;;   '(sp-local-pair 'js2-mode "<" ">"))
+;; ;; (eval-after-load 'web-mode
+;; ;;   '(sp-local-pair 'js2-mode "<" ">"))
 
-;; (setq tide-format-options '(:indentSize 4
-;;                             :tabSize 4))
+;; ;; (setq tide-format-options '(:indentSize 4
+;; ;;                             :tabSize 4))
 
 
 ;; http://tkf.github.io/emacs-jedi/latest/
@@ -240,4 +299,14 @@ Return a list of one element based on major mode."
 ;; (add-hook 'python-mode-hook 'my/python-mode-hooks)
 ;; (setq jedi:complete-on-dot t)  ; optional
 (yas-global-mode)
-(rvm-use-default)
+;; (rvm-use-default)
+
+(require 'ace-window)
+(setq aw-scope 'frame)
+(setq aw-dispatch-always nil)
+;; fix how helm splits windows
+(setq split-height-threshold nil)
+
+
+(set-face-attribute 'tabbar-unselected nil :foreground "lightgreen")
+(set-face-attribute 'ediff-current-diff-C nil :background "brightblack")
