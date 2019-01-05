@@ -1,6 +1,7 @@
 (menu-bar-mode 0)
 (setq prelude-guru nil)
-;; (beacon-mode 1)
+(beacon-mode 0)
+(setq initial-scratch-message nil)
 
 (defvar my/packages '(markdown-mode
                       multiple-cursors
@@ -9,15 +10,20 @@
                       tabbar
                       solarized-theme
                       tide
-                      yasnippet-snippets
+                      ;; yasnippet-snippets
                       ts-comint
                       elm-mode
                       ;; eyebrowse
-                      rvm
+                      ;; rvm
                       ))
 
 (prelude-require-packages my/packages)
 (setq prelude-theme 'solarized-dark)
+
+(with-eval-after-load "solarized-theme"
+  (custom-theme-set-faces
+   'solarized-light
+   '(region ((t (:background "white"))))))
 ;; (defun light-mode ()
 ;;   (interactive)
 ;;   (set-terminal-parameter nil 'background-mode 'light)
@@ -108,14 +114,6 @@
 (add-hook 'markdown-mode-hook 'my/markdown-settings)
 
 
-;; https://stackoverflow.com/questions/1242352/get-font-face-under-cursor-in-emacs
-(defun what-face (pos)
-  (interactive "d")
-  (let ((face (or (get-char-property (pos) 'read-face-name)
-                  (get-char-property (pos) 'face))))
-    (if face (message "Face: %s" face) (message "No face at %d" pos))))
-
-
 (require 'tabbar)
 
 (setq tabbar-separator (quote (" | ")))
@@ -177,7 +175,7 @@
 ;; Key sequences "C-S-PgUp" and "C-S-PgDn" move the current tab to the left and to the right.
 (define-key prelude-mode-map (kbd "C-c C-<left>") 'tabbar-move-current-tab-one-place-left)
 (define-key prelude-mode-map (kbd "C-c C-<right>") 'tabbar-move-current-tab-one-place-right)
-(define-key prelude-mode-map (kbd "S-C-K") 'kill-whole-line)
+(define-key prelude-mode-map (kbd "C-K") 'kill-whole-line)
 
 ;; could also try https://github.com/jinzhu/configure/blob/master/emacs/settings/tabbar.el
 (defun my/tabbar-buffer-groups-by-project ()

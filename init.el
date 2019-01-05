@@ -153,7 +153,7 @@ This is DEPRECATED, use %s instead." prelude-modules-file))
                prelude-modules-file
                (directory-files prelude-personal-dir 't "^[^#\.].*\\.el$"))))
 
-(message "Prelude is ready to do thy bidding, Master %s!" current-user)
+(message "Shit's done")
 
 ;; Patch security vulnerability in Emacs versions older than 25.3
 (when (version< emacs-version "25.3")
